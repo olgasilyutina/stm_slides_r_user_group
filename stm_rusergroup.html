@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Структурно-тематическое моделирование library(stm)</title>
+
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <meta name="generator" content="pandoc" />
+
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <base target="_blank">
+
+  <script type="text/javascript">
+    var SLIDE_CONFIG = {
+      // Slide settings
+      settings: {
+                title: 'Структурно-тематическое моделирование<br>library(‘stm’)',
+                        useBuilds: true,
+        usePrettify: true,
+        enableSlideAreas: true,
+        enableTouch: true,
+                      },
+
+      // Author information
+      presenters: [
+            {
+        name:  'Ольга Силютина, <br>Высшая Школа Экономики, ВКонтакте' ,
+        company: '',
+        gplus: '',
+        twitter: '',
+        www: '',
+        github: ''
+      },
+            ]
+    };
+  </script>
+
+  <link href="stm_rusergroup_files/ioslides-13.5.1/fonts/fonts.css" rel="stylesheet" />
+  <link href="stm_rusergroup_files/ioslides-13.5.1/theme/css/default.css" rel="stylesheet" />
+  <link href="stm_rusergroup_files/ioslides-13.5.1/theme/css/phone.css" rel="stylesheet" />
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/modernizr.custom.45394.js"></script>
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/prettify/prettify.js"></script>
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/prettify/lang-r.js"></script>
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/prettify/lang-yaml.js"></script>
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/hammer.js"></script>
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/slide-controller.js"></script>
+  <script src="stm_rusergroup_files/ioslides-13.5.1/js/slide-deck.js"></script>
+
+  <style type="text/css">
+
+    b, strong {
+      font-weight: bold;
+    }
+
+    em {
+      font-style: italic;
+    }
+
+    slides > slide {
+      -webkit-transition: all 0.2s ease-in-out;
+      -moz-transition: all 0.2s ease-in-out;
+      -o-transition: all 0.2s ease-in-out;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .auto-fadein {
+      -webkit-transition: opacity 0.6s ease-in;
+      -webkit-transition-delay: 0.2s;
+      -moz-transition: opacity 0.6s ease-in 0.2s;
+      -o-transition: opacity 0.6s ease-in 0.2s;
+      transition: opacity 0.6s ease-in 0.2s;
+      opacity: 0;
+    }
+
+  </style>
+
+
+</head>
+
+<body style="opacity: 0">
+
+<slides class="layout-widescreen">
+
+  <slide class="title-slide segue nobackground">
+        <!-- The content of this hgroup is replaced programmatically through the slide_config.json. -->
+    <hgroup class="auto-fadein">
+      <h1 data-config-title><!-- populated from slide_config.json --></h1>
+      <h2 data-config-subtitle><!-- populated from slide_config.json --></h2>
+      <p data-config-presenter><!-- populated from slide_config.json --></p>
+          </hgroup>
+  </slide>
+
+<slide class=""><hgroup><h2>Что сегодня узнаем?</h2></hgroup><article  id="--" class="smaller flexbox.vcenter">
+
+<ul class = 'build'>
+<li>В чем особенности модели</li>
+<li>Как подготовить данные</li>
+<li>Как определиться с количеством тем</li>
+<li>Как можно визуализировать и интерпретировать результаты</li>
+<li>Дополнительные кейсы</li>
+</ul>
+
+</article></slide><slide class=""><hgroup><h2>Особенности структурно-тематического моделирования</h2></hgroup><article  id="---" class="smaller flexbox.vcenter">
+
+<p>STM - генеративная модель частотности слов</p>
+
+<p>преимущества:</p>
+
+<ul class = 'build'>
+<li>корреляция между темами (<del>распределение Дирихле</del> -&gt; логнормальное распределение)</li>
+<li>статистическая проверка гипотез об эффекте ковариатов (GLM)</li>
+<li>метрики для выбора количества тем</li>
+</ul>
+
+<p>недостатки:</p>
+
+<ul class = 'build'>
+<li>снижение качества результатов при использовании большого количества ковариатов</li>
+<li>все еще нужна указывать количество желаемых тем</li>
+</ul>
+
+</article></slide><slide class=""><hgroup><h2>Основные функции пакета stm</h2></hgroup><article  id="---stm" class="smaller flexbox.vcenter">
+
+<div class="centered">
+<p><img src="pipeline.png" width="400px" /></p></div>
+
+</article></slide><slide class=""><hgroup><h2>Подгрузим данные</h2></hgroup><article  id="-" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>library(readr)
+library(dplyr)
+library(ggplot2)
+library(stm)
+library(tm)
+library(stringr)
+library(igraph)
+library(ggraph)</pre>
+
+<pre class = 'prettyprint lang-r'>df_s &lt;- read_csv(&#39;/Users/o.silutina/Downloads/intreg_data.csv&#39;, locale = locale(encoding = &#39;utf-8&#39;))
+df_s$years &lt;- as.numeric(df_s$years)
+
+# расширяем словарь стоп-слов
+stopslova &lt;- enc2utf8(c(stopwords(&quot;ru&quot;), &quot;который&quot;, &quot;это&quot;, &quot;этот&quot;, 
+                        &quot;что&quot;, &quot;быть&quot;, &quot;для&quot;, &quot;весь&quot;, &quot;как&quot;, &quot;при&quot;, 
+                        &quot;свой&quot;, &quot;только&quot;, &quot;год&quot;))
+Encoding(stopslova) &lt;- &quot;UTF-8&quot;
+stopslova &lt;- str_pad(stopslova, 40, &quot;both&quot;)
+stopslova &lt;- str_replace_all(stopslova, &quot;\\s+&quot;, &quot; &quot;)
+
+for (slovo in stopslova) {
+  df_s[[1]] = str_replace_all(df_s[[1]], slovo, &quot;&quot;)
+}</pre>
+
+</article></slide><slide class=""><hgroup><h2>Подготавливаем данные для модели</h2></hgroup><article  id="---" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>set.seed(1) 
+df_s = as.data.frame(df_s)
+processed &lt;- textProcessor(df_s$lem_tex, metadata = df_s, stem=F, removestopwords = TRUE, language = &quot;ru&quot;)</pre>
+
+<pre >## Building corpus... 
+## Converting to Lower Case... 
+## Removing punctuation... 
+## Removing stopwords... 
+## Removing numbers... 
+## Creating Output...</pre>
+
+<pre class = 'prettyprint lang-r'>out &lt;- prepDocuments(processed$documents, processed$vocab, processed$meta)</pre>
+
+<pre >## Removing 11831 of 17908 terms (11831 of 55095 tokens) due to frequency 
+## Removing 4 Documents with No Words 
+## Your corpus now has 2577 documents, 6077 terms and 43264 tokens.</pre>
+
+<pre class = 'prettyprint lang-r'>docs &lt;- out$documents
+vocab &lt;- out$vocab
+meta  &lt;-out$meta </pre>
+
+</article></slide><slide class=""><hgroup><h2>Находим подходящее количество тем</h2></hgroup><article  id="---" class="smaller build">
+
+<pre class = 'prettyprint lang-r'># прогоняем несколько моделей для выбора количества тем
+set.seed(1) 
+storage &lt;- searchK(out$documents, 
+                   out$vocab, 
+                   K = c(5, 10, 15),  
+                   prevalence =~ Polit_news_related + s(years), 
+                   data = out$meta)</pre>
+
+<pre class = 'prettyprint lang-r'>storage$results</pre>
+
+<pre >##    K   exclus    semcoh   heldout  residual     bound    lbound em.its
+## 1  5 8.928040 -140.7214 -7.544977 18.641999 -374042.7 -374037.9      5
+## 2 10 9.397799 -120.4211 -7.277118 10.440585 -336125.2 -336110.1    496
+## 3 15 9.548202 -115.2389 -7.167970  8.499551 -325230.8 -325202.9    500</pre>
+
+</article></slide><slide class=""><hgroup><h2></h2></hgroup><article  id="section" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>plot(storage)</pre>
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-9-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Запускаем модель</h2></hgroup><article  id="-" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>set.seed(1) 
+poliblogPrevFit15 &lt;- stm(documents = out$documents, vocab = out$vocab,
+                         K = 15, prevalence =~ Polit_news_related + s(years),
+                         max.em.its = 100, data = out$meta,
+                         init.type = &quot;Spectral&quot;)</pre>
+
+</article></slide><slide class=""><hgroup><h2>Содержание тем</h2></hgroup><article  id="-" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>plot(poliblogPrevFit15)</pre>
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-13-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Называем темы</h2></hgroup><article  id="-" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>predict_topics &lt;- estimateEffect(1:15 ~ Polit_news_related + s(years), 
+                                 poliblogPrevFit15,  
+                                 meta = out$meta, 
+                                 uncertainty = &quot;Global&quot;)
+
+topicNames &lt;- c(&#39;Blockings&#39;, &#39;International experience&#39;, &#39;Responsible organization&#39;, &#39;Legislation&#39;,
+                &#39;Russian technologies&#39;, &#39;Trading&#39;, &#39;Black list&#39;, &#39;New opinions&#39;, &#39;Censorship&#39;, 
+                &#39;Roskomnadzor&#39;, &#39;Federal net&#39;, &#39;President&#39;, &#39;China experience&#39;, 
+                &#39;Ministry of Communications&#39;, &#39;Ecology&#39;)
+
+top_vec &lt;- c(1:15)
+names(top_vec) &lt;- topicNames
+fift &lt;- as.data.frame(cbind(top_vec, names(top_vec)))
+colnames(fift)[2] &lt;- &quot;names&quot;
+colnames(fift)[1] &lt;- &quot;topic&quot;</pre>
+
+</article></slide><slide class=""><hgroup><h2>Стандартная визуализация эффекта ковариата</h2></hgroup><article  id="---" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>plot(predict_topics, covariate = &quot;Polit_news_related&quot;, topics = c(1, 5, 13),
+     model = poliblogPrevFit15, method = &quot;difference&quot;,
+     cov.value1 = &quot;0&quot;, cov.value2 = &quot;1&quot;,
+     xlab = &quot;Less Political ... More Political&quot;,
+     main = &quot;Effect of Non-political vs. Political&quot;,
+     labeltype = &quot;custom&quot;, xlim = c(-.1, .1),
+     custom.labels = c(&#39;Blockings&#39;, &#39;Russian technologies&#39;, &#39;China experience&#39;))</pre>
+
+</article></slide><slide class=""><hgroup><h2>Стандартная визуализация эффекта ковариата</h2></hgroup><article  id="----1" class="smaller build">
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-16-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Визуализация эффекта ковариата в ggplot2</h2></hgroup><article  id="----ggplot2" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>sumdf &lt;- summary(predict_topics)
+#getting data from the model
+tblsum &lt;- sumdf$tables
+
+sign_topics &lt;- as.data.frame(cbind(topic = topicNames, 
+                                   polit_true_sign = rep(NA, 15), 
+                                   estimate = rep(NA, 15)))
+sign_topics$polit_true_sign = as.numeric(sign_topics$polit_true_sign)
+sign_topics$estimate = as.numeric(sign_topics$estimate)
+
+for (i in c(1:15)){
+  sign_topics$polit_true_sign[[i]] = tblsum[[i]][2,4]
+}
+
+for (i in c(1:15)){
+  sign_topics$estimate[[i]] = tblsum[[i]][2,1]
+}
+
+sign_topics$Group&lt;-ifelse(sign_topics$polit_true_sign&lt;=0.05,&quot;Significant&quot;,&quot;Insignificant&quot;)
+sign_topics$polit &lt;- ifelse(sign_topics$estimate&lt;0, &quot;Non-political&quot;, &quot;Political&quot;)
+sign_topics &lt;- sign_topics %&gt;% filter(Group != &quot;Insignificant&quot;)
+cols &lt;- c(&quot;Non-political&quot;=&quot;#FF1B1C&quot;, &quot;Political&quot;=&quot;#202C59&quot;)</pre>
+
+</article></slide><slide class=""><hgroup><h2>Визуализация эффекта ковариата в ggplot2</h2></hgroup><article  id="----ggplot2-1" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>ggplot(sign_topics, aes(x=topic,y=estimate,fill=polit)) + 
+  geom_bar(stat=&quot;identity&quot;, alpha=0.7) + 
+  ylab(&quot;Estimate&quot;) + 
+  xlab(&quot;Topic&quot;) + 
+  ggtitle(&quot;Significant estimated effect of covariates on topics&quot;) +
+  coord_flip() + 
+  scale_fill_manual(name=&quot;&quot;, values=cols, breaks=c(&quot;Non-political&quot;, &quot;Political&quot;)) +
+  theme_minimal() + 
+  theme(text=element_text(family=&quot;Times New Roman&quot;, size=12), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),panel.border = element_blank(), 
+        axis.line = element_line(colour = &quot;black&quot;))</pre>
+
+</article></slide><slide class=""><hgroup><h2>Визуализация эффекта ковариата в ggplot2</h2></hgroup><article  id="----ggplot2-2" class="smaller build">
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-19-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Эффект ковариата года выпуска статьи</h2></hgroup><article  id="----" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>plot(predict_topics, &quot;years&quot;, method = &quot;continuous&quot;, topics = 5,
+model = z, printlegend = FALSE, xaxt = &quot;n&quot;, xlab = &quot;Years from 2009 to 2017&quot;)
+title(&#39;Russian technologies&#39;)</pre>
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-20-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Стандартная визуализация корреляции между темами</h2></hgroup><article  id="----" class="smaller build">
+
+<pre class = 'prettyprint lang-r'># получаем позитивные корреляции топиков
+mod.out.corr &lt;- topicCorr(poliblogPrevFit15)
+plot(mod.out.corr)</pre>
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-21-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Создание объекта igraph</h2></hgroup><article  id="--igraph" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>adj_cor_topic &lt;- mod.out.corr$posadj
+adj_cor_topic_cor &lt;- mod.out.corr$cor
+
+# присваиваем имена топиков
+adj_cor_topic &lt;- as.matrix.data.frame(adj_cor_topic)
+colnames(adj_cor_topic) &lt;- topicNames
+rownames(adj_cor_topic) &lt;- topicNames
+
+# получаем igraph объект из сопряженной матрицы
+cor_topics &lt;- graph.adjacency(adjmatrix = adj_cor_topic, mode = &quot;undirected&quot;, diag = F)
+
+# оставляем только связанные вершины
+cor_topics &lt;- delete.vertices(cor_topics, 
+                              V(cor_topics)[ degree(cor_topics) &lt; 1] )
+
+fastgreedy_topic &lt;- fastgreedy.community(cor_topics)</pre>
+
+</article></slide><slide class=""><hgroup><h2>Кластеризация сети</h2></hgroup><article  id="-" class="smaller build">
+
+<pre class = 'prettyprint lang-r'># кластеризуем сеть
+table_fastgreedy_topic &lt;- cbind(fastgreedy_topic$membership, fastgreedy_topic$names)
+table_fastgreedy_topic = as.data.frame(table_fastgreedy_topic)
+
+table_fastgreedy_topic$V1 = as.character(table_fastgreedy_topic$V1)
+table_fastgreedy_topic$V2 = as.character(table_fastgreedy_topic$V2)
+
+V(cor_topics)$Clusters = as.character(table_fastgreedy_topic$V1[match(V(cor_topics)$name, table_fastgreedy_topic$V2)])</pre>
+
+</article></slide><slide class=""><hgroup><h2>Визуализация сети корреляций тем в ggraph</h2></hgroup><article  id="-----ggraph" class="smaller build">
+
+<pre class = 'prettyprint lang-r'>col_topics = c(&quot;1&quot;=&quot;#2FBF71&quot;, &quot;2&quot;=&quot;#EF2D56&quot;, &quot;3&quot;=&quot;#59C3C3&quot;,  &quot;4&quot;=&quot;#DFCC74&quot;)
+ggraph(cor_topics, layout = &quot;fr&quot;) +
+  geom_edge_link(show.legend = FALSE) +
+  geom_node_point(aes(color = Clusters), alpha = 0.7, size = 5, palette = &quot;Set2&quot;) +
+  geom_node_text(aes(label = name), repel = TRUE, size=5) +
+  theme_void() +
+  scale_color_manual(values=col_topics) +
+  theme(legend.position=&quot;none&quot;, text=element_text(family=&quot;Times New Roman&quot;))</pre>
+
+</article></slide><slide class=""><hgroup><h2>Визуализация сети корреляций тем в ggraph</h2></hgroup><article  id="-----ggraph-1" class="smaller build">
+
+<p><img src="stm_rusergroup_files/figure-html/unnamed-chunk-25-1.png" width="720" /></p>
+
+</article></slide><slide class=""><hgroup><h2>Дополнительные возможности визуализации</h2></hgroup><article  id="--" class="smaller flexbox.vcenter">
+
+<div class="centered">
+<p><img src="dtgs_river.png" width="600px" /></p></div>
+
+<p><a href='https://dl.acm.org/citation.cfm?doid=3201064.3201102' title=''>Shirokanova and Silyutina. &quot;Internet Regulation Media Coverage in Russia: Topics and Countries&quot; WebSci &#39;18 Proceedings of the 10th ACM Conference on Web Science 2019.</a> <a href='https://github.com/olgasilyutina/stm_internet_regulation/blob/master/websci_18.md' title=''>GitHub code</a></p>
+
+</article></slide><slide class=""><hgroup><h2>Дополнительные возможности визуализации</h2></hgroup><article  id="---1" class="smaller flexbox.vcenter">
+
+<div class="centered">
+<p><img src="web_clust.png" width="600px" /></p></div>
+
+<p><a href='https://link.springer.com/chapter/10.1007/978-3-030-02843-5_15' title=''>Shirokanova and Silyutina. &quot;Internet Regulation: A Text-Based Approach to Media Coverage&quot; International Conference on Digital Transformation and Global Society 2019.</a> <a href='https://github.com/olgasilyutina/stm_internet_regulation/blob/master/dtgs_18.md' title=''>GitHub code</a></p>
+
+</article></slide><slide class=""><hgroup><h2>Дополнительные возможности визуализации</h2></hgroup><article  id="---2" class="smaller flexbox.vcenter">
+
+<div class="centered">
+<p><img src="web_effect.png" width="600px" /></p></div>
+
+<p><a href='https://link.springer.com/chapter/10.1007/978-3-030-02843-5_15' title=''>Shirokanova and Silyutina. &quot;Internet Regulation: A Text-Based Approach to Media Coverage&quot; International Conference on Digital Transformation and Global Society 2019.</a> <a href='https://github.com/olgasilyutina/stm_internet_regulation/blob/master/dtgs_18.md' title=''>GitHub code</a></p>
+
+</article></slide><slide class=""><hgroup><h2>Ресурсы</h2></hgroup><article  class="smaller build">
+
+<ol class = 'build'>
+<li><a href='https://cran.r-project.org/web/packages/stm/vignettes/stmVignette.pdf' title=''>stmVignette</a></li>
+<li><a href='https://cran.r-project.org/web/packages/stm/stm.pdf' title=''>Package ‘stm’</a></li>
+<li><a href='https://cbail.github.io/SICSS_Topic_Modeling.html' title=''>Chris Bail, Topic Modeling tutorial</a></li>
+<li><a href='https://www.structuraltopicmodel.com/' title=''>structuraltopicmodel.com</a></li>
+<li><a href='https://github.com/olgasilyutina/stm_internet_regulation/' title=''>Olga Silyutina, code for papers with stm applications</a></li>
+<li><a href='https://www.researchgate.net/publication/324104639_Computer-Assisted_Text_Analysis_for_Social_Science_Topic_Models_and_Beyond' title=''>Wesslen, Ryan. (2018). Computer-Assisted Text Analysis for Social Science: Topic Models and Beyond.</a></li>
+</ol></article></slide>
+
+
+  <slide class="backdrop"></slide>
+
+</slides>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+<!-- map slide visiblity events into shiny -->
+<script>
+  (function() {
+    if (window.jQuery) {
+       window.jQuery(document).on('slideleave', function(e) {
+         window.jQuery(e.target).trigger('hidden');
+      });
+       window.jQuery(document).on('slideenter', function(e) {
+         window.jQuery(e.target).trigger('shown');
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>
